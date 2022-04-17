@@ -30,6 +30,7 @@ import java.security.AccessController;
 import sun.net.ResourceManager;
 
 /**
+ * 1
  * Abstract datagram and multicast socket implementation base class.
  * Note: This is not a public class, so that applets cannot call
  * into the implementation directly and hence cannot bypass the
