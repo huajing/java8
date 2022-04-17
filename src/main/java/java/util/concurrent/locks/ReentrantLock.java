@@ -194,6 +194,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
 
     /**
      * Sync object for non-fair locks
+     * 非公平锁
      */
     static final class NonfairSync extends Sync {
         private static final long serialVersionUID = 7316153563782823691L;
@@ -201,8 +202,10 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         /**
          * Performs lock.  Try immediate barge, backing up to normal
          * acquire on failure.
+         * 非公平锁，
          */
         final void lock() {
+            //先抢锁，成功即执行
             if (compareAndSetState(0, 1))
                 setExclusiveOwnerThread(Thread.currentThread());
             else
@@ -216,11 +219,14 @@ public class ReentrantLock implements Lock, java.io.Serializable {
 
     /**
      * Sync object for fair locks
+     *
+     * 公平锁
      */
     static final class FairSync extends Sync {
         private static final long serialVersionUID = -3000897897090466540L;
 
         final void lock() {
+            //先请求
             acquire(1);
         }
 
@@ -231,15 +237,15 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         protected final boolean tryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
             int c = getState();
-            if (c == 0) {
-                if (!hasQueuedPredecessors() &&
-                    compareAndSetState(0, acquires)) {
+            if (c == 0) {//先判断
+                if (!hasQueuedPredecessors() && // 队列中没有在执行的任务
+                    compareAndSetState(0, acquires)) {//抢锁
                     setExclusiveOwnerThread(current);
                     return true;
                 }
             }
-            else if (current == getExclusiveOwnerThread()) {
-                int nextc = c + acquires;
+            else if (current == getExclusiveOwnerThread()) {//当前线程为正在执行的线程
+                int nextc = c + acquires;//state+acquires,表示重入锁
                 if (nextc < 0)
                     throw new Error("Maximum lock count exceeded");
                 setState(nextc);

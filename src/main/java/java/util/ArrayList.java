@@ -111,6 +111,7 @@ public class ArrayList<E> extends AbstractList<E>
 
     /**
      * Default initial capacity.
+     * 默认容量，放10个数据
      */
     private static final int DEFAULT_CAPACITY = 10;
 
@@ -231,6 +232,10 @@ public class ArrayList<E> extends AbstractList<E>
         ensureExplicitCapacity(calculateCapacity(elementData, minCapacity));
     }
 
+    /**
+     * 确保明确的容量，不足就扩容
+     * @param minCapacity 需要的最小容量
+     */
     private void ensureExplicitCapacity(int minCapacity) {
         modCount++;
 
@@ -457,6 +462,8 @@ public class ArrayList<E> extends AbstractList<E>
      *
      * @param e element to be appended to this list
      * @return <tt>true</tt> (as specified by {@link Collection#add})
+     *
+     * 添加数据的方法
      */
     public boolean add(E e) {
         ensureCapacityInternal(size + 1);  // Increments modCount!!
