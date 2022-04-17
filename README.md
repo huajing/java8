@@ -7,4 +7,4 @@ jdk1.8.0_181\src.zip，只拷贝了几个重要包的类型
 # 开始注释
 
 ## AQS
- [菜鸟教程](src/main/java/java/util/concurrent/locks/AbstractQueuedSynchronizer.java)
+ [AbstractQueuedSynchronizer](src/main/java/java/util/concurrent/locks/AbstractQueuedSynchronizer.java)
