@@ -1,28 +1,4 @@
 /*
- * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- *
- */
-
-/*
  *
  *
  *
@@ -42,7 +18,7 @@ import sun.misc.Unsafe;
 
 /**
  * AQS核心类
- * 1、大量使用轻量级锁CAD
+ * 1、大量使用轻量级锁CAS
  * 2、state属性表示是否有锁，0为无锁，大于0表示有锁
  * 3、双向队列让拿不到锁的线程排队
  * 4、LockSupport让线程等待/唤醒 --> 调用Unsafe--> 调用本地方法实现
