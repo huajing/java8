@@ -197,20 +197,23 @@ public abstract class AbstractSelectableChannel
                 throw new ClosedChannelException();
             if ((ops & ~validOps()) != 0)
                 throw new IllegalArgumentException();
-            if (blocking)
+            if (blocking)//阻塞模式下不支持注册selector
                 throw new IllegalBlockingModeException();
+            //是否已经注册过
             SelectionKey k = findKey(sel);
             if (k != null) {
                 k.interestOps(ops);
                 k.attach(att);
             }
             if (k == null) {
+                //新注册
                 // New registration
                 synchronized (keyLock) {
                     if (!isOpen())
                         throw new ClosedChannelException();
+                    //反过来调用selector的register方法，为啥这么做呢
                     k = ((AbstractSelector)sel).register(this, ops, att);
-                    addKey(k);
+                    addKey(k);//添加到本地数组中
                 }
             }
             return k;

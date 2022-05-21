@@ -93,6 +93,7 @@ public class CopyOnWriteArrayList<E>
     implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
     private static final long serialVersionUID = 8673264195747942595L;
 
+    //线程的原因ReentrantLock
     /** The lock protecting all mutators */
     final transient ReentrantLock lock = new ReentrantLock();
 
@@ -435,8 +436,10 @@ public class CopyOnWriteArrayList<E>
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
+            //当前数组长度
             Object[] elements = getArray();
             int len = elements.length;
+            //新的数组
             Object[] newElements = Arrays.copyOf(elements, len + 1);
             newElements[len] = e;
             setArray(newElements);

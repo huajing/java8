@@ -240,12 +240,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * by either of the constructors with arguments.
      * MUST be a power of two <= 1<<30.
      */
-    static final int MAXIMUM_CAPACITY = 1 << 30;
+    static final int MAXIMUM_CAPACITY = 1 << 30;//1073741824
 
     /**
      * The load factor used when none specified in constructor.
      */
-    static final float DEFAULT_LOAD_FACTOR = 0.75f;
+    static final float DEFAULT_LOAD_FACTOR = 0.75f;//加载因子
 
     /**
      * The bin count threshold for using a tree rather than list for a
@@ -333,9 +333,23 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * cheapest possible way to reduce systematic lossage, as well as
      * to incorporate impact of the highest bits that would otherwise
      * never be used in index calculations because of table bounds.
+     * 计算密钥。hashCode（）并将哈希的高位扩展到低位。由于该表使用两个掩码的幂，
+     * 因此仅在当前掩码上方的位上变化的哈希集将始终发生冲突。
+     * （已知示例中有一组在小表格中保存连续整数的浮点键。）因此，
+     * 我们应用了一种向下传播高位影响的变换。在比特传播的速度、效用和质量之间存在权衡。
+     * 由于许多常见的散列集已经合理分布（因此无法从扩展中受益），
+     * 而且由于我们使用树来处理容器中的大型冲突集，
+     * 我们只需以最便宜的方式对一些移位的位进行异或运算，
+     * 以减少系统性损失，并合并由于表边界而永远不会在索引计算中使用的最高位的影响。
+     * 参考原值与运算后的变化：
+     * hashCode                  : 1163157884
+     * hashCode>>>16             : 17748
+     * hashCode ^ hashCode>>>16  : 1163142184
      */
     static final int hash(Object key) {
         int h;
+        //key为空，返回0
+        //key不为空，返回 key.hashCode() ^  key.hashCode() >>> 16
         return (key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16);
     }
 
@@ -417,7 +431,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * The next size value at which to resize (capacity * load factor).
-     *
+     * 要调整大小的下一个大小值（容量*负载系数）。
+     * 容量
      * @serial
      */
     // (The javadoc description is true upon serialization.
@@ -553,8 +568,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * @see #put(Object, Object)
      */
     public V get(Object key) {
-        Node<K,V> e;
-        return (e = getNode(hash(key), key)) == null ? null : e.value;
+        Node<K,V> e = getNode(hash(key), key);
+        return e == null ? null : e.value;
     }
 
     /**
@@ -566,19 +581,23 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     final Node<K,V> getNode(int hash, Object key) {
         Node<K,V>[] tab; Node<K,V> first, e; int n; K k;
-        if ((tab = table) != null && (n = tab.length) > 0 &&
-            (first = tab[(n - 1) & hash]) != null) {
-            if (first.hash == hash && // always check first node
+
+        if ((tab = table) != null && //table不为空
+                (n = tab.length) > 0 && // 长度大于0
+            (first = tab[(n - 1) & hash]) != null) {//对应索引位置数据不空
+
+            if (first.hash == hash && // always check first node 检查第一个结点的key是否一致
                 ((k = first.key) == key || (key != null && key.equals(k))))
-                return first;
-            if ((e = first.next) != null) {
-                if (first instanceof TreeNode)
+                return first;//一致时直接返回第一个结点
+            if ((e = first.next) != null) {//不一致时找下一个结点，且不为空
+                if (first instanceof TreeNode)//已经是升级为红黑树了，从红黑树中找到应用的结点
                     return ((TreeNode<K,V>)first).getTreeNode(hash, key);
+                //不是红黑树，按链表的方式查找对应的结点
                 do {
                     if (e.hash == hash &&
-                        ((k = e.key) == key || (key != null && key.equals(k))))
-                        return e;
-                } while ((e = e.next) != null);
+                        ((k = e.key) == key || (key != null && key.equals(k))))//找到对应的key
+                        return e;//返回当前结点
+                } while ((e = e.next) != null);//下一个结点，一直找下去
             }
         }
         return null;
@@ -614,51 +633,66 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
     /**
      * Implements Map.put and related methods
-     *
+     * 核心的put功能
      * @param hash hash for key
      * @param key the key
      * @param value the value to put
-     * @param onlyIfAbsent if true, don't change existing value
-     * @param evict if false, the table is in creation mode.
+     * @param onlyIfAbsent if true, don't change existing value 存在同样的key就不覆盖value
+     * @param evict if false, the table is in creation mode. 驱逐
      * @return previous value, or null if none
      */
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
-        Node<K,V>[] tab; Node<K,V> p; int n, i;
+
+        Node<K,V>[] tab; //数组
+        Node<K,V> p; //结点
+        //n = table.length, i为对应在table中的索引
+        int n, i;
+
+        //数组为空，或者长度为0，直接resize数组
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
-        if ((p = tab[i = (n - 1) & hash]) == null)
-            tab[i] = newNode(hash, key, value, null);
-        else {
+
+        //(n - 1) & hash  计算在数数组中索引
+        i = (n - 1) & hash;
+        if ((p = tab[i]) == null)//为空，说明当前索引还没有数据，直接赋值
+            tab[i] = newNode(hash, key, value, null);//新建1个结点直接赋值到对应位置上
+        else {//对应索引位置数据不空，说明有碰撞的情况，
             Node<K,V> e; K k;
             if (p.hash == hash &&
-                ((k = p.key) == key || (key != null && key.equals(k))))
+                ((k = p.key) == key || (key != null && key.equals(k))))//相同的key
                 e = p;
-            else if (p instanceof TreeNode)
+            else if (p instanceof TreeNode)//p已经升级为红黑树的情况，调用红黑树对象的put
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
+                //结点个数
                 for (int binCount = 0; ; ++binCount) {
-                    if ((e = p.next) == null) {
-                        p.next = newNode(hash, key, value, null);
-                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                    if ((e = p.next) == null) {//找到尾结点
+                        p.next = newNode(hash, key, value, null);//尾位插入数据
+                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st 结点个数大于TREEIFY_THRESHOLD，转化为红黑树
                             treeifyBin(tab, hash);
                         break;
                     }
                     if (e.hash == hash &&
-                        ((k = e.key) == key || (key != null && key.equals(k))))
+                        ((k = e.key) == key || (key != null && key.equals(k))))//在链表中找到同一个key，说明已添加过，直接跳出
                         break;
-                    p = e;
+                    p = e;//下一个结点
                 }
             }
+            //已经存对应key的数据
             if (e != null) { // existing mapping for key
                 V oldValue = e.value;
                 if (!onlyIfAbsent || oldValue == null)
-                    e.value = value;
+                    e.value = value;//覆盖value值
                 afterNodeAccess(e);
+                //返回原值
                 return oldValue;
             }
         }
+        //修改次数
         ++modCount;
+
+        //map中的数据个数超出threshold,执行resize
         if (++size > threshold)
             resize();
         afterNodeInsertion(evict);
@@ -671,80 +705,118 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Otherwise, because we are using power-of-two expansion, the
      * elements from each bin must either stay at same index, or move
      * with a power of two offset in the new table.
+     * 初始化表大小或使表大小加倍。如果为空，
+     * 则根据字段阈值中保持的初始容量目标进行分配。
+     * 否则，因为我们使用的是二次幂展开，
+     * 所以每个箱子中的元素要么保持在相同的索引中，要么在新表中以二次幂偏移量移动。
      *
      * @return the table
+     * 比较重要的resize方法，扩容方法
      */
     final Node<K,V>[] resize() {
         Node<K,V>[] oldTab = table;
+        //原来的容量
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
         int oldThr = threshold;
+
+        //
         int newCap, newThr = 0;
         if (oldCap > 0) {
+            //原容量达到最大值，直接返回最大值，不扩容
             if (oldCap >= MAXIMUM_CAPACITY) {
                 threshold = Integer.MAX_VALUE;
                 return oldTab;
             }
+            // 1、oldCap << 1 扩容一倍小于最大容量
+            // 2、oldCap大于初始化容量
             else if ((newCap = oldCap << 1) < MAXIMUM_CAPACITY &&
                      oldCap >= DEFAULT_INITIAL_CAPACITY)
-                newThr = oldThr << 1; // double threshold
-        }
+                newThr = oldThr << 1; // double threshold 容量增加一倍
+        }//oldCap = 0情况，看oldThr大于0
         else if (oldThr > 0) // initial capacity was placed in threshold
             newCap = oldThr;
-        else {               // zero initial threshold signifies using defaults
-            newCap = DEFAULT_INITIAL_CAPACITY;
-            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+        else {               // zero initial threshold signifies using defaults，
+            // 首次初始化，
+            newCap = DEFAULT_INITIAL_CAPACITY;//16为默认的初始化容量
+            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);//扩容条件的最大值 0.75*16=12
         }
         if (newThr == 0) {
+            //新的容量 * loadFactor
             float ft = (float)newCap * loadFactor;
+            //这代码看起来有点恶心
+            //newCap 和 ft 都小于最大容量，返回ft
             newThr = (newCap < MAXIMUM_CAPACITY && ft < (float)MAXIMUM_CAPACITY ?
                       (int)ft : Integer.MAX_VALUE);
         }
+        //更新threshold
         threshold = newThr;
+        //新容量的数组
         @SuppressWarnings({"rawtypes","unchecked"})
-            Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
+        Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
+        //更新table
         table = newTab;
-        if (oldTab != null) {
-            for (int j = 0; j < oldCap; ++j) {
-                Node<K,V> e;
-                if ((e = oldTab[j]) != null) {
-                    oldTab[j] = null;
-                    if (e.next == null)
-                        newTab[e.hash & (newCap - 1)] = e;
-                    else if (e instanceof TreeNode)
-                        ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
-                    else { // preserve order
-                        Node<K,V> loHead = null, loTail = null;
-                        Node<K,V> hiHead = null, hiTail = null;
-                        Node<K,V> next;
-                        do {
-                            next = e.next;
-                            if ((e.hash & oldCap) == 0) {
-                                if (loTail == null)
-                                    loHead = e;
-                                else
-                                    loTail.next = e;
-                                loTail = e;
-                            }
-                            else {
-                                if (hiTail == null)
-                                    hiHead = e;
-                                else
-                                    hiTail.next = e;
-                                hiTail = e;
-                            }
-                        } while ((e = next) != null);
-                        if (loTail != null) {
-                            loTail.next = null;
-                            newTab[j] = loHead;
-                        }
-                        if (hiTail != null) {
-                            hiTail.next = null;
-                            newTab[j + oldCap] = hiHead;
-                        }
+
+        //原table不为空，
+        for (int j = 0; j < oldCap; ++j) {
+            //头结点
+            Node<K,V> e = oldTab[j];
+            if (e == null) {
+                continue;
+            }
+            //置为空，处理e即可
+            oldTab[j] = null;
+            if (e.next == null)//只有当前数组中的结点
+                //1、newCap - 1 从二进制来说全为1
+                //2、与key的hash与后得到table的索引
+                newTab[e.hash & (newCap - 1)] = e;//
+            else if (e instanceof TreeNode)//是红黑树对象
+                //按高低位分到不同的数组位置上，结点对应链表的长度小UNTREEIFY_THRESHOLD时，退回到链表
+                ((TreeNode<K,V>)e).split(this, newTab, j, oldCap);
+            else { // preserve order 处理链表数量大于1的情况
+                //问题？如何将原来链表的数据分到新的数组对应位置上
+                //低位链表
+                Node<K,V> loHead = null, loTail = null;
+                //高位链表
+                Node<K,V> hiHead = null, hiTail = null;
+
+                Node<K,V> next;
+                do {
+                    //下一个结点
+                    next = e.next;
+                    //oldCap为2的倍数，所以只有最高位为1，其它位全为0
+                    //所以e.hash的最高位为0，结果就为0，否则走else
+                    //这里实现了将链表的数据对半分，分为最高位为1和为0的情况
+                    if ((e.hash & oldCap) == 0) {
+                        if (loTail == null)//低位的尾为null
+                            loHead = e;//设置低位头为当前结点
+                        else
+                            loTail.next = e;//尾部插入e
+                        loTail = e;//尾向后移
                     }
+                    else {
+                        if (hiTail == null)
+                            hiHead = e;//高位的头
+                        else
+                            hiTail.next = e;//尾部插入
+                        hiTail = e;//更新尾部
+                    }
+                    //更新e，且不为空，继续循环
+                } while ((e = next) != null);
+                //低位的尾不为空
+                if (loTail != null) {
+                    loTail.next = null;
+                    //更新table中j位置的值
+                    newTab[j] = loHead;
+                }
+                //不为空
+                if (hiTail != null) {
+                    hiTail.next = null;
+                    //索引值+原容量
+                    newTab[j + oldCap] = hiHead;
                 }
             }
         }
+
         return newTab;
     }
 
@@ -1057,6 +1129,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         return (e = getNode(hash(key), key)) == null ? defaultValue : e.value;
     }
 
+    /**
+     * Absent = 缺席的
+     * @param key
+     * @param value
+     * @return
+     */
     @Override
     public V putIfAbsent(K key, V value) {
         return putVal(hash(key), key, value, true, true);
@@ -1800,9 +1878,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * Entry for Tree bins. Extends LinkedHashMap.Entry (which in turn
      * extends Node) so can be used as extension of either regular or
      * linked node.
+     * 继承关系 TreeNode -> LinkedHashMap.Entry -> HashMap.Node -> Map.Entry
      */
     static final class TreeNode<K,V> extends LinkedHashMap.Entry<K,V> {
-        TreeNode<K,V> parent;  // red-black tree links
+        TreeNode<K,V> parent;  // red-black tree links 红黑树
         TreeNode<K,V> left;
         TreeNode<K,V> right;
         TreeNode<K,V> prev;    // needed to unlink next upon deletion
@@ -1813,6 +1892,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
         /**
          * Returns root of tree containing this node.
+         * 一直向上找到顶层的结点
          */
         final TreeNode<K,V> root() {
             for (TreeNode<K,V> r = this, p;;) {
@@ -1855,6 +1935,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         final TreeNode<K,V> find(int h, Object k, Class<?> kc) {
             TreeNode<K,V> p = this;
             do {
+                //ph： p结点的hash值
+                //dir:
                 int ph, dir; K pk;
                 TreeNode<K,V> pl = p.left, pr = p.right, q;
                 if ((ph = p.hash) > h)
@@ -1883,7 +1965,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
          * Calls find for root node.
          */
         final TreeNode<K,V> getTreeNode(int h, Object k) {
-            return ((parent != null) ? root() : this).find(h, k, null);
+            TreeNode<K,V> tn = parent != null ? root() : this;
+            return tn.find(h, k, null);
         }
 
         /**
@@ -2128,48 +2211,59 @@ public class HashMap<K,V> extends AbstractMap<K,V>
          * @param map the map
          * @param tab the table for recording bin heads
          * @param index the index of the table being split
-         * @param bit the bit of hash to split on
+         * @param bit the bit of hash to split on  == oldCap
          */
         final void split(HashMap<K,V> map, Node<K,V>[] tab, int index, int bit) {
             TreeNode<K,V> b = this;
+            //与链表的情况一样，将数据对半分
             // Relink into lo and hi lists, preserving order
             TreeNode<K,V> loHead = null, loTail = null;
             TreeNode<K,V> hiHead = null, hiTail = null;
+            //lc为低位的数量，hc为高位的数量
             int lc = 0, hc = 0;
+            //e, next定义为TreeNode
             for (TreeNode<K,V> e = b, next; e != null; e = next) {
+                //TreeNode(next/prev/parent/left/right/red)
                 next = (TreeNode<K,V>)e.next;
                 e.next = null;
-                if ((e.hash & bit) == 0) {
-                    if ((e.prev = loTail) == null)
+                //bit为oldCap为2的倍数，所以只有最高位为0
+                if ((e.hash & bit) == 0) {//hash对应bit的最高位0，
+                    if ((e.prev = loTail) == null)//低位的loTail为空？
                         loHead = e;
                     else
-                        loTail.next = e;
-                    loTail = e;
+                        loTail.next = e;//尾部插入数据
+                    loTail = e;//更新尾结点
+                    //低位的数量+1
                     ++lc;
                 }
                 else {
                     if ((e.prev = hiTail) == null)
                         hiHead = e;
                     else
-                        hiTail.next = e;
-                    hiTail = e;
+                        hiTail.next = e;//尾部插入数据
+                    hiTail = e;//更新尾结点
+
+                    //高位的数量+1
                     ++hc;
                 }
             }
-
+            //有低位数据
             if (loHead != null) {
-                if (lc <= UNTREEIFY_THRESHOLD)
-                    tab[index] = loHead.untreeify(map);
+                if (lc <= UNTREEIFY_THRESHOLD)//小于UNTREEIFY_THRESHOLD，回退到链表
+                    tab[index] = loHead.untreeify(map);//放到对应数组的位置
                 else {
+                    //大于UNTREEIFY_THRESHOLD，使用红黑树
                     tab[index] = loHead;
                     if (hiHead != null) // (else is already treeified)
                         loHead.treeify(tab);
                 }
             }
+            //有高位数据
             if (hiHead != null) {
-                if (hc <= UNTREEIFY_THRESHOLD)
+                if (hc <= UNTREEIFY_THRESHOLD)//小于UNTREEIFY_THRESHOLD，回退到链表
                     tab[index + bit] = hiHead.untreeify(map);
                 else {
+                    //大于UNTREEIFY_THRESHOLD，使用红黑树
                     tab[index + bit] = hiHead;
                     if (loHead != null)
                         hiHead.treeify(tab);

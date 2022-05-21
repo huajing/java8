@@ -666,20 +666,25 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /* ---------------- Static utilities -------------- */
 
     /**
-     * Spreads (XORs) higher bits of hash to lower and also forces top
-     * bit to 0. Because the table uses power-of-two masking, sets of
-     * hashes that vary only in bits above the current mask will
-     * always collide. (Among known examples are sets of Float keys
-     * holding consecutive whole numbers in small tables.)  So we
-     * apply a transform that spreads the impact of higher bits
-     * downward. There is a tradeoff between speed, utility, and
-     * quality of bit-spreading. Because many common sets of hashes
-     * are already reasonably distributed (so don't benefit from
-     * spreading), and because we use trees to handle large sets of
-     * collisions in bins, we just XOR some shifted bits in the
-     * cheapest possible way to reduce systematic lossage, as well as
-     * to incorporate impact of the highest bits that would otherwise
-     * never be used in index calculations because of table bounds.
+     * 将（XOR）较高的散列位分散到较低的散列位，并强制使用top
+     * *位到0。由于该表使用两个掩蔽的幂，因此
+     * *仅在当前掩码上方的位上变化的哈希将
+     * *总是碰撞。（已知的例子包括一组浮动键。）
+     * *在小表格中保持连续整数。）所以我们
+     * *应用一个可以传播高位影响的变换
+     * *向下。在速度、实用性和灵活性之间需要权衡
+     * *钻头散布的质量。因为许多常见的散列
+     * *已经合理分配（所以不要从中受益）
+     * *因为我们用树来处理大量的
+     * *在垃圾箱中发生碰撞时，我们只是对垃圾箱中的一些移位位进行异或运算
+     * *减少系统性损失的最廉价方法，以及
+     * *合并最高位的影响，否则
+     * *由于表的边界，永远不要在索引计算中使用。
+     * 1、hashCode值如：1163157884
+     * 2、1163157884>>>16 = 17748
+     * 3、(h ^ (h >>> 16)) = 1163142184
+     * 4、 (h ^ (h >>> 16)) & HASH_BITS =
+     * >>>表示将一个数的各二进制位全部右移若干位，右移后左边空出的位用零来填充。移出右边的位被丢弃。
      */
     static final int spread(int h) {
         return (h ^ (h >>> 16)) & HASH_BITS;
@@ -1008,7 +1013,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /** Implementation for put and putIfAbsent */
     final V putVal(K key, V value, boolean onlyIfAbsent) {
+        //key,value都不能为空，否则会报空指针异常
         if (key == null || value == null) throw new NullPointerException();
+        //按key的hashCode转化为hash，用于tab数组的下标
         int hash = spread(key.hashCode());
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
