@@ -1957,17 +1957,18 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 //pl为左结点，pr为右结点
                 TreeNode<K,V> pl = p.left, pr = p.right, q;
 
-                if ((ph = p.hash) > h)//p结点的hash值ph>h表示，往左结点查找
+                if ((ph = p.hash) > h)//p结点的hash值ph>h表示，先往左结点查找
                     p = pl;
-                else if (ph < h)//p结点的hash值ph>h表示，往右结点查找
+                else if (ph < h)//p结点的hash值ph>h表示，再往右结点查找
                     p = pr;
                 //ph和h相等，验证当前结点的key是否要查询的值
                 else if ((pk = p.key) == k || (k != null && k.equals(pk)))
-                    return p;
-                else if (pl == null)
+                    return p;//查找到直接返回当前结点
+                else if (pl == null)//左结点为空，从右边结点查找
                     p = pr;
-                else if (pr == null)
+                else if (pr == null)//右结点为空，从左边结点查找
                     p = pl;
+                //左右结点都不为空
                 else if ((kc != null ||
                           (kc = comparableClassFor(k)) != null) &&
                          (dir = compareComparables(kc, k, pk)) != 0)
