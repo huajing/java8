@@ -566,8 +566,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * distinguish these two cases.
      *
      * @see #put(Object, Object)
+     * 按key查询数据
      */
     public V get(Object key) {
+        //按key的hash和key值查询
         Node<K,V> e = getNode(hash(key), key);
         return e == null ? null : e.value;
     }
@@ -582,17 +584,23 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     final Node<K,V> getNode(int hash, Object key) {
         Node<K,V>[] tab; Node<K,V> first, e; int n; K k;
 
+        //3种情况同时满足时继续往下查找
         if ((tab = table) != null && //table不为空
                 (n = tab.length) > 0 && // 长度大于0
             (first = tab[(n - 1) & hash]) != null) {//对应索引位置数据不空
 
-            if (first.hash == hash && // always check first node 检查第一个结点的key是否一致
+            //比较第一个结点的key是否为找查找值
+            if (first.hash == hash && // always check first node
                 ((k = first.key) == key || (key != null && key.equals(k))))
                 return first;//一致时直接返回第一个结点
-            if ((e = first.next) != null) {//不一致时找下一个结点，且不为空
-                if (first instanceof TreeNode)//已经是升级为红黑树了，从红黑树中找到应用的结点
+
+            //不是第一个结点，继续往下查找
+            if ((e = first.next) != null) {
+                //已经是升级为红黑树了，从红黑树中找到应用的结点
+                if (first instanceof TreeNode)
                     return ((TreeNode<K,V>)first).getTreeNode(hash, key);
-                //不是红黑树，按链表的方式查找对应的结点
+
+                //不是红黑树，按链表的方式查找对应的结点do-while
                 do {
                     if (e.hash == hash &&
                         ((k = e.key) == key || (key != null && key.equals(k))))//找到对应的key
@@ -600,6 +608,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 } while ((e = e.next) != null);//下一个结点，一直找下去
             }
         }
+        //其它情表示没有找到key对应的数据
         return null;
     }
 
@@ -653,7 +662,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         if ((tab = table) == null || (n = tab.length) == 0)
             n = (tab = resize()).length;
 
-        //(n - 1) & hash  计算在数数组中索引
+        //(n - 1) & hash  计算在数数组中索引，其中(n - 1)高位减1会把低位全变1
         i = (n - 1) & hash;
         if ((p = tab[i]) == null)//为空，说明当前索引还没有数据，直接赋值
             tab[i] = newNode(hash, key, value, null);//新建1个结点直接赋值到对应位置上
@@ -665,7 +674,8 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             else if (p instanceof TreeNode)//p已经升级为红黑树的情况，调用红黑树对象的put
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
-                //结点个数
+                //结点个数，从0开始，一直加+，直到p.next为空结束
+                //binCount 的作用是后判断是否升级为红黑树使用
                 for (int binCount = 0; ; ++binCount) {
                     if ((e = p.next) == null) {//找到尾结点
                         p.next = newNode(hash, key, value, null);//尾位插入数据
@@ -1931,18 +1941,27 @@ public class HashMap<K,V> extends AbstractMap<K,V>
          * Finds the node starting at root p with the given hash and key.
          * The kc argument caches comparableClassFor(key) upon first use
          * comparing keys.
+         * 红黑树查找
          */
         final TreeNode<K,V> find(int h, Object k, Class<?> kc) {
+            //p为当前结点，为红黑树的树根
             TreeNode<K,V> p = this;
+
+            //do-while查找
             do {
                 //ph： p结点的hash值
                 //dir:
+                //pk: p结点的key值
                 int ph, dir; K pk;
+
+                //pl为左结点，pr为右结点
                 TreeNode<K,V> pl = p.left, pr = p.right, q;
-                if ((ph = p.hash) > h)
+
+                if ((ph = p.hash) > h)//p结点的hash值ph>h表示，往左结点查找
                     p = pl;
-                else if (ph < h)
+                else if (ph < h)//p结点的hash值ph>h表示，往右结点查找
                     p = pr;
+                //ph和h相等，验证当前结点的key是否要查询的值
                 else if ((pk = p.key) == k || (k != null && k.equals(pk)))
                     return p;
                 else if (pl == null)
@@ -1963,8 +1982,10 @@ public class HashMap<K,V> extends AbstractMap<K,V>
 
         /**
          * Calls find for root node.
+         * 红黑树找到数据逻辑
          */
         final TreeNode<K,V> getTreeNode(int h, Object k) {
+            //当肖不是顶层结点就调用root(),一直找到顶层结点
             TreeNode<K,V> tn = parent != null ? root() : this;
             return tn.find(h, k, null);
         }

@@ -1,3 +1,9 @@
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 /**
  * @Description TODO
  * @Author chenck
@@ -7,18 +13,20 @@
 
 public class TestOp {
     public static void main(String[] args) {
-        int i = 16;
-        printBinary(i);
-        System.out.println();
-        i = i>>1;
-        printBinary(i);
-        System.out.println();
-        System.out.println(i);
-    }
+        /*HashMap s = null;
+        s.put(11,22);*/
 
-    public static void printBinary(int a){
-        for (int i = 31; i >= 0; i--){
-            System.out.print(((a >> i) & 1));
-        }
+        /*int h;
+        Object key = new Object();
+        System.out.println(key.hashCode());
+        System.out.println(key.hashCode()>>>16);//17748
+        System.out.println((key == null) ? 0 : (h = key.hashCode()) ^ (h >>> 16));
+
+        System.out.println(key.hashCode()&(15));*/
+
+       /* for (int i = 0; i < 100; i++) {
+            System.out.println(new Object().hashCode());
+        }*/
+
     }
 }
