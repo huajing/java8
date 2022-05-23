@@ -284,6 +284,12 @@ public class HashMap1_7<K,V>
 
     /**
      * Returns index for hash code h.
+     * length-1说明：
+     *          1、如length=32，对应二进制为：100000
+     *          2、length -1，  对应二进制为：011111
+     * h & (length-1)说明：
+     *          1、任意hash值与011111，结果只能是hash中最后5位中有1则为1
+     *          2、从而达到将一个很大的hash值如：1163157884，限定在数组长度范围内容
      */
     static int indexFor(int h, int length) {
         // assert Integer.bitCount(length) == 1 : "length must be a non-zero power of 2";
@@ -398,24 +404,36 @@ public class HashMap1_7<K,V>
      *         previously associated <tt>null</tt> with <tt>key</tt>.)
      */
     public V put(K key, V value) {
+        //空表就填充
         if (table == EMPTY_TABLE) {
             inflateTable(threshold);
         }
         if (key == null)
             return putForNullKey(value);
+        //获取key对应的hash值
         int hash = hash(key);
+        //计算在数组中的索引值
         int i = indexFor(hash, table.length);
+
+        //找到数组中对应索引的值，且不为空
         for (Entry<K,V> e = table[i]; e != null; e = e.next) {
             Object k;
+            //找到要查询的key值
             if (e.hash == hash && ((k = e.key) == key || key.equals(k))) {
+                //原value值取出来
                 V oldValue = e.value;
+                //更新value
                 e.value = value;
                 e.recordAccess(this);
+
+                //返回覆盖的值
                 return oldValue;
             }
         }
-
+        //修改次数+1
         modCount++;
+
+        //map中不存在key的数据，添加到数组中
         addEntry(hash, key, value, i);
         return null;
     }
@@ -711,7 +729,14 @@ public class HashMap1_7<K,V>
 
         return result;
     }
-
+    /**jdk1.8：数据结构上与1.7相似，只是Entry变Node
+     static class Node<K,V> implements Map.Entry<K,V> {
+         final K key;
+         V value;
+         Node<K,V> next;
+        final int hash;
+     }
+     **/
     static class Entry<K,V> implements Map.Entry<K,V> {
         final K key;
         V value;
@@ -787,11 +812,17 @@ public class HashMap1_7<K,V>
      * method to resize the table if appropriate.
      *
      * Subclass overrides this to alter the behavior of put method.
+     * 给数组中添加结点，但可能需要扩容
      */
     void addEntry(int hash, K key, V value, int bucketIndex) {
-        if ((size >= threshold) && (null != table[bucketIndex])) {
+        if ((size >= threshold) //是否达到扩容的条件
+                && (null != table[bucketIndex])) {//数组对应索引数据不为空
+            //按原来的2倍容量扩容
             resize(2 * table.length);
+            //再次获得hash值
             hash = (null != key) ? hash(key) : 0;
+
+            //用新的table容量，重新计算数组索引位置
             bucketIndex = indexFor(hash, table.length);
         }
 
@@ -807,8 +838,11 @@ public class HashMap1_7<K,V>
      * clone, and readObject.
      */
     void createEntry(int hash, K key, V value, int bucketIndex) {
+        //原数据值
         Entry<K,V> e = table[bucketIndex];
+        //头部插入，新结点的next->e
         table[bucketIndex] = new Entry<>(hash, key, value, e);
+        //已加入数据容量+1
         size++;
     }
 
