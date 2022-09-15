@@ -46,30 +46,7 @@ import java.util.Spliterators;
 import java.util.function.Consumer;
 
 /**
- * An optionally-bounded {@linkplain BlockingDeque blocking deque} based on
- * linked nodes.
- *
- * <p>The optional capacity bound constructor argument serves as a
- * way to prevent excessive expansion. The capacity, if unspecified,
- * is equal to {@link Integer#MAX_VALUE}.  Linked nodes are
- * dynamically created upon each insertion unless this would bring the
- * deque above capacity.
- *
- * <p>Most operations run in constant time (ignoring time spent
- * blocking).  Exceptions include {@link #remove(Object) remove},
- * {@link #removeFirstOccurrence removeFirstOccurrence}, {@link
- * #removeLastOccurrence removeLastOccurrence}, {@link #contains
- * contains}, {@link #iterator iterator.remove()}, and the bulk
- * operations, all of which run in linear time.
- *
- * <p>This class and its iterator implement all of the
- * <em>optional</em> methods of the {@link Collection} and {@link
- * Iterator} interfaces.
- *
- * <p>This class is a member of the
- * <a href="{@docRoot}/../technotes/guides/collections/index.html">
- * Java Collections Framework</a>.
- *
+ * 一把锁+两个条件+双向链表
  * @since 1.6
  * @author  Doug Lea
  * @param <E> the type of elements held in this collection
@@ -78,31 +55,6 @@ public class LinkedBlockingDeque<E>
     extends AbstractQueue<E>
     implements BlockingDeque<E>, java.io.Serializable {
 
-    /*
-     * Implemented as a simple doubly-linked list protected by a
-     * single lock and using conditions to manage blocking.
-     *
-     * To implement weakly consistent iterators, it appears we need to
-     * keep all Nodes GC-reachable from a predecessor dequeued Node.
-     * That would cause two problems:
-     * - allow a rogue Iterator to cause unbounded memory retention
-     * - cause cross-generational linking of old Nodes to new Nodes if
-     *   a Node was tenured while live, which generational GCs have a
-     *   hard time dealing with, causing repeated major collections.
-     * However, only non-deleted Nodes need to be reachable from
-     * dequeued Nodes, and reachability does not necessarily have to
-     * be of the kind understood by the GC.  We use the trick of
-     * linking a Node that has just been dequeued to itself.  Such a
-     * self-link implicitly means to jump to "first" (for next links)
-     * or "last" (for prev links).
-     */
-
-    /*
-     * We have "diamond" multiple interface/abstract class inheritance
-     * here, and that introduces ambiguities. Often we want the
-     * BlockingDeque javadoc combined with the AbstractQueue
-     * implementation, so a lot of method specs are duplicated here.
-     */
 
     private static final long serialVersionUID = -387911632671998426L;
 
